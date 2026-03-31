@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowAI — Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#06090f; --surface:#0c1018; --surface2:#111822; --surface3:#161f2e;
+  --border:#1a2740; --accent:#00c8ff; --accent2:#6c4fff;
+  --green:#00e5a0; --orange:#ff6b35; --yellow:#ffc947; --red:#ff4560;
+  --text:#ddeeff; --muted:#4a6080; --fh:'Syne',sans-serif; --fm:'Space Mono',monospace;
+}
+body { background:var(--bg); color:var(--text); font-family:var(--fm); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,200,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.025) 1px,transparent 1px); background-size:48px 48px; pointer-events:none; z-index:0; }
+
+/* NAV */
+nav { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:10px 24px; border-bottom:1px solid var(--border); background:rgba(6,9,15,0.97); backdrop-filter:blur(12px); flex-shrink:0; }
+.logo { font-family:var(--fh); font-size:17px; font-weight:800; display:flex; align-items:center; gap:9px; cursor:pointer; }
+.logo-icon { width:26px; height:26px; border-radius:7px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:13px; }
+.logo span { color:var(--accent); }
+.nav-center { display:flex; align-items:center; gap:6px; }
+.nav-crumb { font-size:10px; color:var(--muted); }
+.nav-crumb-sep { font-size:10px; color:var(--border); }
+.nav-crumb.active { color:var(--text); }
+.nav-right { display:flex; align-items:center; gap:10px; }
+.ai-pill { font-size:9px; padding:4px 10px; border-radius:20px; letter-spacing:1px; text-transform:uppercase; border:1px solid rgba(0,200,255,0.3); color:var(--accent); background:rgba(0,200,255,0.08); }
+.user-pill { display:flex; align-items:center; gap:7px; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:5px 11px; font-size:11px; cursor:pointer; transition:all 0.2s; }
+.user-pill:hover { border-color:var(--red); color:var(--red); }
+.avatar { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#06090f; }
+.nav-btn { font-family:var(--fm); font-size:10px; padding:7px 14px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+.nav-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* LAYOUT */
+.main { display:flex; flex:1; overflow:hidden; position:relative; z-index:1; }
+
+/* CHAT */
+.chat-panel { width:360px; min-width:360px; display:flex; flex-direction:column; border-right:1px solid var(--border); background:var(--surface); }
+.panel-top { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:9px; }
+.panel-top h2 { font-family:var(--fh); font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); flex:1; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+.chat-msgs { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:12px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+.msg { display:flex; flex-direction:column; gap:5px; animation:msgIn 0.3s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.msg-lbl { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+.msg.user .msg-lbl { color:var(--accent); text-align:right; }
+.msg.user { align-items:flex-end; }
+.msg-bub { padding:11px 14px; border-radius:10px; font-size:12px; line-height:1.65; }
+.msg.ai .msg-bub { background:var(--surface2); border:1px solid var(--border); border-radius:4px 10px 10px 10px; }
+.msg.user .msg-bub { background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.2); border-radius:10px 4px 10px 10px; text-align:right; }
+
+.chips { display:flex; flex-wrap:wrap; gap:6px; padding:0 14px 10px; }
+.chip { font-family:var(--fm); font-size:10px; padding:5px 10px; border:1px solid var(--border); border-radius:20px; background:transparent; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+.chip:hover { border-color:var(--accent); color:var(--accent); }
+
+.input-wrap { padding:12px 14px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:flex-end; }
+.chat-inp { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:11px 14px; font-family:var(--fm); font-size:12px; color:var(--text); resize:none; outline:none; min-height:44px; max-height:100px; transition:border-color 0.2s; line-height:1.5; }
+.chat-inp:focus { border-color:var(--accent); }
+.chat-inp::placeholder { color:var(--muted); }
+.send-btn { width:44px; height:44px; border-radius:10px; border:none; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#06090f; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; transition:all 0.2s; flex-shrink:0; }
+.send-btn:hover { transform:scale(1.05); }
+.send-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+.model-bar { padding:6px 14px; font-size:9px; color:var(--muted); letter-spacing:1px; border-top:1px solid var(--border); display:flex; align-items:center; gap:6px; }
+.model-dot { width:5px; height:5px; border-radius:50%; background:var(--green); flex-shrink:0; }
+.stats-row { padding:7px 14px; border-top:1px solid var(--border); display:flex; gap:14px; font-size:10px; color:var(--muted); }
+.sv { color:var(--accent); font-weight:700; }
+
+/* CANVAS */
+.canvas-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.canvas-top { display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-bottom:1px solid var(--border); background:rgba(12,16,24,0.85); }
+.canvas-top h2 { font-family:var(--fh); font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.tb-actions { display:flex; gap:6px; }
+.tbtn { font-family:var(--fm); font-size:10px; padding:6px 13px; border-radius:7px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+.tbtn:hover { border-color:var(--accent); color:var(--accent); }
+.tbtn.green { border-color:rgba(0,229,160,0.4); color:var(--green); }
+.tbtn.green:hover { background:rgba(0,229,160,0.08); }
+.tbtn:disabled { opacity:0.3; cursor:not-allowed; }
+
+.canvas { flex:1; overflow:auto; padding:40px; display:flex; align-items:flex-start; justify-content:center; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+.canvas-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:14px; color:var(--muted); text-align:center; }
+.canvas-empty .ei { font-size:52px; opacity:0.18; }
+.canvas-empty p { font-size:12px; line-height:1.7; max-width:260px; }
+
+/* NODES */
+.flow { display:flex; flex-direction:column; align-items:center; min-width:560px; }
+.node { width:300px; border-radius:14px; border:1px solid var(--border); background:var(--surface2); overflow:hidden; opacity:0; animation:nodeIn 0.4s ease forwards; cursor:default; transition:box-shadow 0.25s, border-color 0.25s; }
+@keyframes nodeIn { from{opacity:0;transform:scale(0.9) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.nh { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); }
+.ni { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.ntitle { font-family:var(--fh); font-size:13px; font-weight:700; flex:1; }
+.nbadge { font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:3px 9px; border-radius:10px; }
+.nbody { padding:12px 16px; font-size:11px; color:var(--muted); line-height:1.6; }
+
+.node.trigger { border-color:rgba(0,229,160,0.35); }
+.node.trigger .nh { background:rgba(0,229,160,0.05); }
+.node.trigger .ni { background:rgba(0,229,160,0.15); }
+.node.trigger .nbadge { background:rgba(0,229,160,0.15); color:var(--green); }
+.node.action { border-color:rgba(0,200,255,0.28); }
+.node.action .nh { background:rgba(0,200,255,0.04); }
+.node.action .ni { background:rgba(0,200,255,0.12); }
+.node.action .nbadge { background:rgba(0,200,255,0.12); color:var(--accent); }
+.node.condition { border-color:rgba(255,201,71,0.3); }
+.node.condition .nh { background:rgba(255,201,71,0.04); }
+.node.condition .ni { background:rgba(255,201,71,0.12); }
+.node.condition .nbadge { background:rgba(255,201,71,0.12); color:var(--yellow); }
+.node.output { border-color:rgba(108,79,255,0.35); }
+.node.output .nh { background:rgba(108,79,255,0.05); }
+.node.output .ni { background:rgba(108,79,255,0.15); }
+.node.output .nbadge { background:rgba(108,79,255,0.15); color:#a78bfa; }
+.node.delay { border-color:rgba(255,107,53,0.3); }
+.node.delay .nh { background:rgba(255,107,53,0.04); }
+.node.delay .ni { background:rgba(255,107,53,0.12); }
+.node.delay .nbadge { background:rgba(255,107,53,0.12); color:var(--orange); }
+
+.conn { display:flex; flex-direction:column; align-items:center; position:relative; }
+.cl { width:2px; height:28px; background:linear-gradient(to bottom,var(--border),rgba(0,200,255,0.35)); }
+.ca { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid rgba(0,200,255,0.35); }
+.clbl { position:absolute; left:calc(50% + 8px); top:50%; transform:translateY(-50%); font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
+
+.thinking { display:flex; align-items:center; gap:8px; padding:11px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:4px 10px 10px 10px; font-size:11px; color:var(--muted); }
+.tdots { display:flex; gap:4px; }
+.tdots span { width:5px; height:5px; border-radius:50%; background:var(--accent); animation:blink 1.2s infinite; }
+.tdots span:nth-child(2){animation-delay:.2s} .tdots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+.toast { position:fixed; bottom:24px; right:24px; z-index:9999; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 20px; font-size:12px; color:var(--text); animation:fadeUp 0.3s ease; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo" onclick="location.href='dashboard.html'">
+    <div class="logo-icon">⚡</div>
+    Flow<span>AI</span>
+  </div>
+  <div class="nav-center">
+    <span class="nav-crumb" onclick="location.href='dashboard.html'" style="cursor:pointer">Dashboard</span>
+    <span class="nav-crumb-sep">/</span>
+    <span class="nav-crumb active">Builder</span>
+  </div>
+  <div class="nav-right">
+    <div class="ai-pill" id="aiPill">Gemini</div>
+    <button class="nav-btn" onclick="location.href='dashboard.html'">← My Workflows</button>
+    <div class="user-pill" onclick="doLogout()">
+      <div class="avatar" id="userAvatar">?</div>
+      <span id="userName">...</span>
+      <span style="color:var(--muted);font-size:10px">· out</span>
+    </div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- CHAT -->
+  <div class="chat-panel">
+    <div class="panel-top">
+      <div class="status-dot"></div>
+      <h2>AI Assistant</h2>
+      <button class="tbtn" onclick="clearAll()" style="padding:4px 10px;font-size:10px">New</button>
+    </div>
+
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="msg ai">
+        <div class="msg-lbl">FlowAI</div>
+        <div class="msg-bub">Hey! 👋 Describe any automation in plain English and I'll build it as a visual workflow.<br><br><em style="color:var(--accent)">"When a user signs up, wait 1 hour, send a welcome email, then notify Slack."</em></div>
+      </div>
+    </div>
+
+    <div class="chips" id="chips">
+      <button class="chip" onclick="useChip('Email onboarding sequence for new users')">📧 Onboarding</button>
+      <button class="chip" onclick="useChip('New order notification to Slack and email')">🛒 Order alert</button>
+      <button class="chip" onclick="useChip('Weekly analytics report generation and distribution')">📊 Weekly report</button>
+      <button class="chip" onclick="useChip('Monitor API for errors and send Slack alert')">🔔 Error monitor</button>
+      <button class="chip" onclick="useChip('User inactivity re-engagement email sequence')">💌 Re-engage</button>
+    </div>
+
+    <div class="input-wrap">
+      <textarea id="chatInp" class="chat-inp" placeholder="Describe your workflow..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMsg()">→</button>
+    </div>
+    <div class="model-bar"><div class="model-dot"></div><span id="modelLbl">Gemini primary · DeepSeek fallback</span></div>
+    <div class="stats-row">
+      <span>Nodes: <span class="sv" id="nodeCount">0</span></span>
+      <span>Status: <span class="sv" id="statusVal">idle</span></span>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-panel">
+    <div class="canvas-top">
+      <h2>Workflow Canvas</h2>
+      <div class="tb-actions">
+        <button class="tbtn" onclick="clearAll()">✕ Clear</button>
+        <button class="tbtn" id="saveBtn" onclick="saveWf()" disabled>💾 Save</button>
+        <button class="tbtn" id="exportBtn" onclick="exportJSON()" disabled>⬇ Export</button>
+        <button class="tbtn green" id="runBtn" onclick="runWf()" disabled>▶ Run</button>
+      </div>
+    </div>
+    <div class="canvas" id="canvas">
+      <div class="canvas-empty" id="emptyState">
+        <div class="ei">◈</div>
+        <p>Your workflow appears here.<br>Describe one in the chat →</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { auth, db, callAI } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { collection, addDoc, getDocs, query, where, doc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+let currentUser = null;
+let currentWf = null;
+let isLoading = false;
+
+// AUTH GUARD
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = 'auth.html'; return; }
+  currentUser = user;
+  const name = user.displayName || user.email.split('@')[0];
+  document.getElementById('userName').textContent = name;
+  document.getElementById('userAvatar').textContent = name[0].toUpperCase();
+
+  // Check if we should load a saved workflow
+  const loadId = sessionStorage.getItem('loadWorkflowId');
+  if (loadId) {
+    sessionStorage.removeItem('loadWorkflowId');
+    await loadWorkflowById(loadId);
+  }
+});
+
+async function loadWorkflowById(id) {
+  try {
+    const snap = await getDoc(doc(db, 'workflows', id));
+    if (!snap.exists()) return;
+    const wf = { id: snap.id, ...snap.data() };
+    currentWf = wf;
+    renderCanvas(wf);
+    document.getElementById('nodeCount').textContent = wf.nodes.length;
+    document.getElementById('statusVal').textContent = 'loaded';
+    enableBtns(true);
+    addMsg('ai', `📂 Loaded: <strong>${wf.title}</strong> — ${wf.nodes.length} nodes. You can refine it by describing changes.`);
+  } catch (e) { console.error(e); }
+}
+
+// CHAT
+window.autoResize = el => { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; };
+window.handleKey = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
+window.useChip = text => { document.getElementById('chatInp').value = text; sendMsg(); };
+
+function addMsg(role, html) {
+  const wrap = document.getElementById('chatMsgs');
+  const d = document.createElement('div'); d.className = `msg ${role}`;
+  d.innerHTML = `<div class="msg-lbl">${role === 'user' ? 'You' : 'FlowAI'}</div><div class="msg-bub">${html}</div>`;
+  wrap.appendChild(d); wrap.scrollTop = wrap.scrollHeight;
+}
+
+function addThinking() {
+  const wrap = document.getElementById('chatMsgs');
+  const d = document.createElement('div'); d.className = 'msg ai'; d.id = 'thinkMsg';
+  d.innerHTML = `<div class="msg-lbl">FlowAI</div><div class="thinking"><div class="tdots"><span></span><span></span><span></span></div>Building workflow...</div>`;
+  wrap.appendChild(d); wrap.scrollTop = wrap.scrollHeight;
+}
+
+window.sendMsg = async () => {
+  const inp = document.getElementById('chatInp');
+  const text = inp.value.trim();
+  if (!text || isLoading) return;
+  inp.value = ''; inp.style.height = 'auto';
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('statusVal').textContent = 'thinking';
+  document.getElementById('chips').style.display = 'none';
+  addMsg('user', text);
+  addThinking();
+
+  try {
+    const raw = await callAI(text, model => {
+      document.getElementById('aiPill').textContent = model;
+      document.getElementById('modelLbl').textContent = model === 'Gemini' ? 'Gemini primary · DeepSeek fallback' : 'DeepSeek (fallback active)';
+    });
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const wf = JSON.parse(clean);
+    document.getElementById('thinkMsg')?.remove();
+    currentWf = wf;
+    renderCanvas(wf);
+    document.getElementById('nodeCount').textContent = wf.nodes.length;
+    document.getElementById('statusVal').textContent = 'ready';
+    enableBtns(true);
+    addMsg('ai', `✅ <strong>${wf.nodes.length}-step workflow</strong> generated!<br><br>${wf.summary}<br><br><em style="color:var(--muted)">Hit 💾 Save or refine by chatting more.</em>`);
+  } catch (e) {
+    document.getElementById('thinkMsg')?.remove();
+    addMsg('ai', `⚠️ Error generating workflow: ${e.message}.<br>Try rephrasing your description.`);
+    document.getElementById('statusVal').textContent = 'error';
+    console.error(e);
+  }
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+};
+
+// CANVAS
+function renderCanvas(wf) {
+  const canvas = document.getElementById('canvas');
+  document.getElementById('emptyState')?.remove();
+  document.getElementById('flowEl')?.remove();
+  const flow = document.createElement('div'); flow.className = 'flow'; flow.id = 'flowEl';
+  wf.nodes.forEach((node, i) => {
+    const el = document.createElement('div'); el.className = `node ${node.type}`; el.style.animationDelay = `${i * 0.08}s`;
+    el.innerHTML = `<div class="nh"><div class="ni">${node.icon || '⚙'}</div><div class="ntitle">${node.title}</div><div class="nbadge">${node.type}</div></div><div class="nbody">${node.description}</div>`;
+    flow.appendChild(el);
+    if (i < wf.nodes.length - 1) {
+      const c = document.createElement('div'); c.className = 'conn';
+      c.innerHTML = `<div class="cl"></div><div class="ca"></div>${node.connectorLabel ? `<div class="clbl">${node.connectorLabel}</div>` : ''}`;
+      flow.appendChild(c);
+    }
+  });
+  canvas.appendChild(flow);
+}
+
+function enableBtns(on) {
+  ['saveBtn', 'exportBtn', 'runBtn'].forEach(id => document.getElementById(id).disabled = !on);
+}
+
+window.clearAll = () => {
+  document.getElementById('flowEl')?.remove();
+  currentWf = null;
+  document.getElementById('canvas').innerHTML = `<div class="canvas-empty" id="emptyState"><div class="ei">◈</div><p>Your workflow appears here.<br>Describe one in the chat →</p></div>`;
+  document.getElementById('nodeCount').textContent = '0';
+  document.getElementById('statusVal').textContent = 'idle';
+  enableBtns(false);
+  document.getElementById('chips').style.display = 'flex';
+};
+
+window.saveWf = async () => {
+  if (!currentWf || !currentUser) return;
+  document.getElementById('saveBtn').textContent = '...';
+  try {
+    await addDoc(collection(db, 'workflows'), {
+      uid: currentUser.uid,
+      title: currentWf.summary || 'Untitled Workflow',
+      nodes: currentWf.nodes,
+      summary: currentWf.summary,
+      createdAt: serverTimestamp()
+    });
+    showToast('✅ Workflow saved to dashboard!');
+    document.getElementById('saveBtn').textContent = '✓ Saved';
+    setTimeout(() => { document.getElementById('saveBtn').textContent = '💾 Save'; }, 2000);
+  } catch (e) {
+    showToast('❌ Save failed: ' + e.message);
+    document.getElementById('saveBtn').textContent = '💾 Save';
+  }
+};
+
+window.exportJSON = () => {
+  if (!currentWf) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(currentWf, null, 2)], { type: 'application/json' }));
+  a.download = 'workflow.json'; a.click();
+};
+
+window.runWf = () => {
+  if (!currentWf) return;
+  document.getElementById('statusVal').textContent = 'running';
+  document.getElementById('runBtn').disabled = true;
+  const nodes = document.querySelectorAll('.node');
+  nodes.forEach((n, i) => {
+    setTimeout(() => {
+      n.style.boxShadow = '0 0 20px rgba(0,229,160,0.5)';
+      n.style.borderColor = 'rgba(0,229,160,0.7)';
+      setTimeout(() => {
+        n.style.boxShadow = ''; n.style.borderColor = '';
+        if (i === nodes.length - 1) {
+          document.getElementById('statusVal').textContent = 'done';
+          document.getElementById('runBtn').disabled = false;
+          addMsg('ai', `✅ Simulation complete — all ${nodes.length} steps executed successfully!`);
+        }
+      }, 700);
+    }, i * 500);
+  });
+};
+
+window.doLogout = async () => { await signOut(auth); window.location.href = 'auth.html'; };
+
+function showToast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+}
+</script>
+</body>
+</html>
