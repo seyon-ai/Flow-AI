@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowAI — AI Workflow Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #06090f; --surface: #0c1018; --surface2: #111822; --surface3: #161f2e;
+  --border: #1a2740; --accent: #00c8ff; --accent2: #6c4fff;
+  --green: #00e5a0; --orange: #ff6b35; --yellow: #ffc947; --red: #ff4560;
+  --text: #ddeeff; --muted: #4a6080;
+  --font-head: 'Syne', sans-serif; --font-mono: 'Space Mono', monospace;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font-mono); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,200,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,255,0.025) 1px, transparent 1px); background-size: 48px 48px; pointer-events: none; z-index: 0; }
+
+/* AUTH */
+#authScreen { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+.auth-card { width: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 0 80px rgba(0,200,255,0.06); animation: fadeUp 0.5s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.auth-logo { font-family: var(--font-head); font-size: 26px; font-weight: 800; display: flex; align-items: center; gap: 12px; }
+.auth-logo-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.auth-logo span { color: var(--accent); }
+.auth-tabs { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.auth-tab { flex: 1; padding: 10px; text-align: center; font-family: var(--font-mono); font-size: 11px; cursor: pointer; border: none; background: transparent; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; transition: all 0.2s; }
+.auth-tab.active { background: var(--surface2); color: var(--accent); }
+.auth-field { display: flex; flex-direction: column; gap: 7px; }
+.auth-field label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.auth-field input { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-family: var(--font-mono); font-size: 13px; color: var(--text); outline: none; transition: border-color 0.2s; }
+.auth-field input:focus { border-color: var(--accent); }
+.auth-btn { padding: 14px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #06090f; font-family: var(--font-head); font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.auth-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.auth-divider { text-align: center; font-size: 11px; color: var(--muted); position: relative; }
+.auth-divider::before, .auth-divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--border); }
+.auth-divider::before { left: 0; } .auth-divider::after { right: 0; }
+.google-btn { padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-family: var(--font-mono); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
+.google-btn:hover { border-color: var(--accent); color: var(--accent); }
+.auth-error { font-size: 11px; color: var(--red); text-align: center; min-height: 14px; }
+
+/* HEADER */
+header { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 1px solid var(--border); background: rgba(6,9,15,0.97); backdrop-filter: blur(12px); }
+.logo { font-family: var(--font-head); font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.logo span { color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.ai-badge { font-size: 10px; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid rgba(0,200,255,0.3); color: var(--accent); background: rgba(0,200,255,0.08); }
+.user-pill { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+.user-pill:hover { border-color: var(--red); color: var(--red); }
+.user-avatar { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #06090f; }
+
+/* LAYOUT */
+.main { display: flex; flex: 1; overflow: hidden; position: relative; z-index: 1; }
+
+/* SIDEBAR */
+.sidebar { width: 210px; min-width: 210px; border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-header { padding: 13px 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.sidebar-header h3 { font-family: var(--font-head); font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.new-btn { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--accent); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.new-btn:hover { background: rgba(0,200,255,0.1); border-color: var(--accent); }
+.saved-list { flex: 1; overflow-y: auto; padding: 8px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.saved-item { padding: 9px 11px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; margin-bottom: 3px; }
+.saved-item:hover { background: var(--surface2); border-color: var(--border); }
+.saved-item.active { background: var(--surface2); border-color: rgba(0,200,255,0.3); }
+.saved-item-title { font-size: 11px; color: var(--text); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved-item-meta { font-size: 9px; color: var(--muted); }
+.saved-empty { padding: 20px 12px; text-align: center; font-size: 11px; color: var(--muted); line-height: 1.7; }
+
+/* CHAT */
+.chat-panel { width: 370px; min-width: 370px; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--surface); }
+.panel-header { padding: 13px 17px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.panel-header h2 { font-family: var(--font-head); font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+.chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 13px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.msg { display: flex; flex-direction: column; gap: 5px; animation: msgIn 0.3s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.msg-label { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.msg.user .msg-label { color: var(--accent); text-align: right; }
+.msg.user { align-items: flex-end; }
+.msg-bubble { padding: 11px 14px; border-radius: 10px; font-size: 12px; line-height: 1.6; }
+.msg.ai .msg-bubble { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px 10px 10px 10px; }
+.msg.user .msg-bubble { background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.2); border-radius: 10px 4px 10px 10px; text-align: right; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 15px 10px; }
+.chip { font-family: var(--font-mono); font-size: 10px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 20px; background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chat-input-wrap { padding: 13px 15px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-end; }
+.chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text); resize: none; outline: none; min-height: 44px; max-height: 100px; transition: border-color 0.2s; line-height: 1.5; }
+.chat-input:focus { border-color: var(--accent); }
+.chat-input::placeholder { color: var(--muted); }
+.send-btn { width: 44px; height: 44px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #06090f; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; transition: all 0.2s; flex-shrink: 0; }
+.send-btn:hover { transform: scale(1.05); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.model-bar { padding: 6px 15px; font-size: 9px; color: var(--muted); letter-spacing: 1px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+.model-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+.stats-bar { padding: 7px 15px; border-top: 1px solid var(--border); display: flex; gap: 14px; font-size: 10px; color: var(--muted); background: var(--surface); }
+.stat { display: flex; align-items: center; gap: 5px; }
+.stat-val { color: var(--accent); font-weight: 700; }
+
+/* CANVAS */
+.canvas-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.canvas-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 11px 18px; border-bottom: 1px solid var(--border); background: rgba(12,16,24,0.8); }
+.canvas-toolbar h2 { font-family: var(--font-head); font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.toolbar-actions { display: flex; gap: 6px; }
+.tbtn { font-family: var(--font-mono); font-size: 10px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+.tbtn:hover { border-color: var(--accent); color: var(--accent); }
+.tbtn.green { border-color: rgba(0,229,160,0.4); color: var(--green); }
+.tbtn.green:hover { background: rgba(0,229,160,0.08); }
+.tbtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.workflow-canvas { flex: 1; overflow: auto; padding: 40px; display: flex; align-items: flex-start; justify-content: center; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.workflow-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 14px; color: var(--muted); text-align: center; }
+.workflow-empty .big-icon { font-size: 52px; opacity: 0.2; }
+.workflow-empty p { font-size: 12px; line-height: 1.7; max-width: 260px; }
+
+/* NODES */
+.workflow-flow { display: flex; flex-direction: column; align-items: center; min-width: 560px; }
+.node { width: 300px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface2); overflow: hidden; animation: nodeIn 0.4s ease forwards; opacity: 0; cursor: pointer; transition: box-shadow 0.2s; }
+.node:hover { box-shadow: 0 0 20px rgba(0,200,255,0.12); }
+@keyframes nodeIn { from{opacity:0;transform:scale(0.9) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.node-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.node-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.node-title { font-family: var(--font-head); font-size: 13px; font-weight: 700; flex: 1; }
+.node-badge { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; }
+.node-body { padding: 12px 16px; font-size: 11px; color: var(--muted); line-height: 1.6; }
+.node.trigger { border-color: rgba(0,229,160,0.35); }
+.node.trigger .node-header { background: rgba(0,229,160,0.05); }
+.node.trigger .node-icon { background: rgba(0,229,160,0.15); }
+.node.trigger .node-badge { background: rgba(0,229,160,0.15); color: var(--green); }
+.node.action { border-color: rgba(0,200,255,0.3); }
+.node.action .node-header { background: rgba(0,200,255,0.04); }
+.node.action .node-icon { background: rgba(0,200,255,0.12); }
+.node.action .node-badge { background: rgba(0,200,255,0.12); color: var(--accent); }
+.node.condition { border-color: rgba(255,201,71,0.3); }
+.node.condition .node-header { background: rgba(255,201,71,0.04); }
+.node.condition .node-icon { background: rgba(255,201,71,0.12); }
+.node.condition .node-badge { background: rgba(255,201,71,0.12); color: var(--yellow); }
+.node.output { border-color: rgba(108,79,255,0.35); }
+.node.output .node-header { background: rgba(108,79,255,0.05); }
+.node.output .node-icon { background: rgba(108,79,255,0.15); }
+.node.output .node-badge { background: rgba(108,79,255,0.15); color: #a78bfa; }
+.node.delay { border-color: rgba(255,107,53,0.3); }
+.node.delay .node-header { background: rgba(255,107,53,0.04); }
+.node.delay .node-icon { background: rgba(255,107,53,0.12); }
+.node.delay .node-badge { background: rgba(255,107,53,0.12); color: var(--orange); }
+.connector { display: flex; flex-direction: column; align-items: center; position: relative; }
+.conn-line { width: 2px; height: 28px; background: linear-gradient(to bottom, var(--border), rgba(0,200,255,0.35)); }
+.conn-arrow { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid rgba(0,200,255,0.35); }
+.conn-label { position: absolute; left: calc(50% + 8px); top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+.thinking { display: flex; align-items: center; gap: 8px; padding: 11px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px 10px 10px 10px; font-size: 11px; color: var(--muted); }
+.tdots { display: flex; gap: 4px; }
+.tdots span { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
+.tdots span:nth-child(2){animation-delay:.2s} .tdots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+.toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 12px; color: var(--text); animation: fadeUp 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo"><div class="auth-logo-icon">⚡</div>Flow<span>AI</span></div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+    <div class="auth-field"><label>Email</label><input type="email" id="authEmail" placeholder="you@example.com"/></div>
+    <div class="auth-field"><label>Password</label><input type="password" id="authPassword" placeholder="••••••••"/></div>
+    <div id="authNameField" class="auth-field" style="display:none"><label>Display Name</label><input type="text" id="authName" placeholder="Your name"/></div>
+    <div class="auth-error" id="authError"></div>
+    <button class="auth-btn" id="authSubmitBtn" onclick="handleAuth()">Login</button>
+    <div class="auth-divider">or</div>
+    <button class="google-btn" onclick="handleGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.77-2.7.77-2.08 0-3.84-1.4-4.47-3.29H1.86v2.08A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.51 10.53c-.16-.48-.25-.99-.25-1.53s.09-1.05.25-1.53V5.39H1.86A8 8 0 0 0 .98 9c0 1.29.31 2.51.88 3.61l2.65-2.08z"/><path fill="#EA4335" d="M8.98 3.58c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 8.98 1a8 8 0 0 0-7.12 4.39l2.65 2.08c.63-1.89 2.39-3.29 4.47-3.29z"/></svg>
+      Continue with Google
+    </button>
+  </div>
+</div>
+
+<!-- APP -->
+<header>
+  <div class="logo"><div class="logo-icon">⚡</div>Flow<span>AI</span></div>
+  <div class="header-right">
+    <div class="ai-badge" id="aiBadge">Gemini</div>
+    <div class="user-pill" id="userPill" onclick="logout()">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <span id="userName">...</span>
+      <span style="color:var(--muted);font-size:10px">· logout</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h3>Saved</h3>
+      <button class="new-btn" onclick="newWorkflow()">+</button>
+    </div>
+    <div class="saved-list" id="savedList"><div class="saved-empty">No saved workflows yet.<br>Build one to save it!</div></div>
+  </div>
+
+  <div class="chat-panel">
+    <div class="panel-header"><div class="status-dot"></div><h2>AI Chat</h2></div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg ai">
+        <div class="msg-label">FlowAI</div>
+        <div class="msg-bubble">Hey! 👋 Describe any automation in plain English and I'll build it as a visual workflow.<br><br><em style="color:var(--accent)">"When a user signs up, wait 1 hour, send a welcome email, then add them to CRM."</em></div>
+      </div>
+    </div>
+    <div class="suggestions" id="suggestions">
+      <button class="chip" onclick="useSuggestion('Email onboarding sequence for new users')">📧 Onboarding</button>
+      <button class="chip" onclick="useSuggestion('New order notification to Slack')">🛒 Order alert</button>
+      <button class="chip" onclick="useSuggestion('Weekly analytics report generation')">📊 Weekly report</button>
+      <button class="chip" onclick="useSuggestion('Monitor API errors and send alerts')">🔔 Error alert</button>
+    </div>
+    <div class="chat-input-wrap">
+      <textarea id="chatInput" class="chat-input" placeholder="Describe your workflow..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">→</button>
+    </div>
+    <div class="model-bar"><div class="model-dot"></div><span id="modelLabel">Gemini primary · DeepSeek fallback</span></div>
+    <div class="stats-bar">
+      <div class="stat">Nodes: <span class="stat-val" id="nodeCount">0</span></div>
+      <div class="stat">Status: <span class="stat-val" id="statusVal">idle</span></div>
+      <div class="stat">Saved: <span class="stat-val" id="savedCount">0</span></div>
+    </div>
+  </div>
+
+  <div class="canvas-panel">
+    <div class="canvas-toolbar">
+      <h2>Workflow Canvas</h2>
+      <div class="toolbar-actions">
+        <button class="tbtn" onclick="clearCanvas()">✕ Clear</button>
+        <button class="tbtn" onclick="saveWorkflow()" id="saveBtn" disabled>💾 Save</button>
+        <button class="tbtn" onclick="exportJSON()" id="exportBtn" disabled>⬇ Export</button>
+        <button class="tbtn green" onclick="runWorkflow()" id="runBtn" disabled>▶ Run</button>
+      </div>
+    </div>
+    <div class="workflow-canvas" id="workflowCanvas">
+      <div class="workflow-empty" id="emptyState">
+        <div class="big-icon">◈</div>
+        <p>Your workflow will appear here.<br>Chat with AI to generate one.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const FB = { apiKey:"AIzaSyA6mD9wjzCpqZps20CnxZUmPoCUC_yBXCA", authDomain:"flowai-455e3.firebaseapp.com", projectId:"flowai-455e3", storageBucket:"flowai-455e3.firebasestorage.app", messagingSenderId:"575960248970", appId:"1:575960248970:web:636bf5b1c5c4e15b69f373" };
+const GEMINI_KEY = 'AIzaSyAN1HJtqbS2tw-TZZoguQLScBxWAWczFeQ';
+const DEEPSEEK_KEY = 'sk-89618dc158a04c2b86afaed3ed3beedb';
+
+const firebaseApp = initializeApp(FB);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+const gProvider = new GoogleAuthProvider();
+
+let currentUser = null, currentWorkflow = null, isLoading = false, activeTab = 'login', savedWorkflows = [];
+
+// AUTH
+window.switchTab = (tab) => {
+  activeTab = tab;
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='signup')));
+  document.getElementById('authSubmitBtn').textContent = tab==='login'?'Login':'Create Account';
+  document.getElementById('authNameField').style.display = tab==='signup'?'flex':'none';
+  document.getElementById('authError').textContent='';
+};
+
+window.handleAuth = async () => {
+  const email=document.getElementById('authEmail').value.trim(), pass=document.getElementById('authPassword').value, name=document.getElementById('authName').value.trim(), err=document.getElementById('authError');
+  err.textContent='';
+  if(!email||!pass){err.textContent='Please fill in all fields.';return;}
+  try {
+    if(activeTab==='signup'){const c=await createUserWithEmailAndPassword(auth,email,pass);if(name)await updateProfile(c.user,{displayName:name});}
+    else await signInWithEmailAndPassword(auth,email,pass);
+  }catch(e){err.textContent=e.message.replace('Firebase: ','').replace(/\(auth.*\)/,'');}
+};
+
+window.handleGoogle = async () => { try{await signInWithPopup(auth,gProvider);}catch(e){document.getElementById('authError').textContent=e.message;} };
+window.logout = async () => { await signOut(auth); };
+
+onAuthStateChanged(auth, async (user) => {
+  if(user){
+    currentUser=user;
+    document.getElementById('authScreen').style.display='none';
+    const name=user.displayName||user.email.split('@')[0];
+    document.getElementById('userName').textContent=name;
+    document.getElementById('userAvatar').textContent=name[0].toUpperCase();
+    await loadSaved();
+  } else {
+    currentUser=null;
+    document.getElementById('authScreen').style.display='flex';
+  }
+});
+
+// FIRESTORE
+async function loadSaved() {
+  if(!currentUser)return;
+  try {
+    const q=query(collection(db,'workflows'),where('uid','==',currentUser.uid),orderBy('createdAt','desc'));
+    const snap=await getDocs(q);
+    savedWorkflows=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderSidebar();
+  }catch(e){console.error(e);}
+}
+
+function renderSidebar() {
+  const list=document.getElementById('savedList');
+  document.getElementById('savedCount').textContent=savedWorkflows.length;
+  if(!savedWorkflows.length){list.innerHTML='<div class="saved-empty">No saved workflows yet.<br>Build one to save it!</div>';return;}
+  list.innerHTML=savedWorkflows.map(w=>`
+    <div class="saved-item" onclick="loadSavedWorkflow('${w.id}')">
+      <div class="saved-item-title">${w.title||'Untitled'}</div>
+      <div class="saved-item-meta">${w.nodes?.length||0} nodes · ${w.createdAt?.toDate?w.createdAt.toDate().toLocaleDateString():'now'}</div>
+    </div>`).join('');
+}
+
+window.saveWorkflow = async () => {
+  if(!currentWorkflow||!currentUser)return;
+  try {
+    await addDoc(collection(db,'workflows'),{uid:currentUser.uid,title:currentWorkflow.summary||'Untitled Workflow',nodes:currentWorkflow.nodes,summary:currentWorkflow.summary,createdAt:serverTimestamp()});
+    showToast('✅ Workflow saved!');
+    await loadSaved();
+  }catch(e){showToast('❌ Save failed.');}
+};
+
+window.loadSavedWorkflow = (id) => {
+  const wf=savedWorkflows.find(w=>w.id===id);
+  if(!wf)return;
+  currentWorkflow=wf;
+  renderWorkflow(wf);
+  document.getElementById('nodeCount').textContent=wf.nodes.length;
+  document.getElementById('statusVal').textContent='loaded';
+  enableBtns(true);
+  addMsg('ai',`📂 Loaded: <strong>${wf.title}</strong>`);
+};
+
+// AI
+const SYSTEM = `You are FlowAI. Respond ONLY with valid JSON — no markdown, no backticks, no explanation.
+JSON: {"summary":"One sentence","nodes":[{"id":"uid","type":"trigger|action|condition|output|delay","icon":"emoji","title":"Title","description":"What it does","connectorLabel":""}]}
+Rules: First=trigger, Last=output/action, 3-7 nodes, be specific. JSON ONLY.`;
+
+async function callGemini(prompt) {
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system_instruction:{parts:[{text:SYSTEM}]},contents:[{parts:[{text:prompt}]}]})});
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message);
+  return d.candidates[0].content.parts[0].text;
+}
+
+async function callDeepSeek(prompt) {
+  document.getElementById('aiBadge').textContent='DeepSeek';
+  document.getElementById('modelLabel').textContent='DeepSeek (fallback active)';
+  const r=await fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${DEEPSEEK_KEY}`},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'system',content:SYSTEM},{role:'user',content:prompt}],max_tokens:1000})});
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message);
+  return d.choices[0].message.content;
+}
+
+async function callAI(prompt) {
+  document.getElementById('aiBadge').textContent='Gemini';
+  document.getElementById('modelLabel').textContent='Gemini primary · DeepSeek fallback';
+  try { return await callGemini(prompt); }
+  catch(e) { console.warn('Gemini failed, trying DeepSeek:', e.message); return await callDeepSeek(prompt); }
+}
+
+// CHAT
+window.autoResize=(el)=>{el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';};
+window.handleKey=(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}};
+window.useSuggestion=(text)=>{document.getElementById('chatInput').value=text;sendMessage();};
+
+window.addMsg=(role,text)=>{
+  const wrap=document.getElementById('chatMessages');
+  const div=document.createElement('div');div.className=`msg ${role}`;
+  div.innerHTML=`<div class="msg-label">${role==='user'?'You':'FlowAI'}</div><div class="msg-bubble">${text}</div>`;
+  wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
+};
+
+function addThinking(){
+  const wrap=document.getElementById('chatMessages');
+  const div=document.createElement('div');div.className='msg ai';div.id='thinkingMsg';
+  div.innerHTML=`<div class="msg-label">FlowAI</div><div class="thinking"><div class="tdots"><span></span><span></span><span></span></div>Building workflow...</div>`;
+  wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
+}
+
+window.sendMessage=async()=>{
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if(!text||isLoading)return;
+  input.value='';input.style.height='auto';
+  isLoading=true;
+  document.getElementById('sendBtn').disabled=true;
+  document.getElementById('statusVal').textContent='thinking';
+  document.getElementById('suggestions').style.display='none';
+  addMsg('user',text);addThinking();
+  try {
+    const raw=await callAI(text);
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const wf=JSON.parse(clean);
+    document.getElementById('thinkingMsg')?.remove();
+    currentWorkflow=wf;
+    renderWorkflow(wf);
+    document.getElementById('nodeCount').textContent=wf.nodes.length;
+    document.getElementById('statusVal').textContent='ready';
+    enableBtns(true);
+    addMsg('ai',`✅ <strong>${wf.nodes.length}-step workflow</strong> ready!<br><br>${wf.summary}<br><br><em style="color:var(--muted)">Hit 💾 Save to store it. Refine by chatting more.</em>`);
+  }catch(e){
+    document.getElementById('thinkingMsg')?.remove();
+    addMsg('ai',`⚠️ ${e.message}. Try rephrasing your workflow.`);
+    document.getElementById('statusVal').textContent='error';
+    console.error(e);
+  }
+  isLoading=false;
+  document.getElementById('sendBtn').disabled=false;
+};
+
+// CANVAS
+window.renderWorkflow=(wf)=>{
+  const canvas=document.getElementById('workflowCanvas');
+  document.getElementById('emptyState')?.remove();
+  document.getElementById('workflowFlow')?.remove();
+  const flow=document.createElement('div');flow.className='workflow-flow';flow.id='workflowFlow';
+  wf.nodes.forEach((node,i)=>{
+    const el=document.createElement('div');el.className=`node ${node.type}`;el.style.animationDelay=`${i*0.1}s`;
+    el.innerHTML=`<div class="node-header"><div class="node-icon">${node.icon||'⚙'}</div><div class="node-title">${node.title}</div><div class="node-badge">${node.type}</div></div><div class="node-body">${node.description}</div>`;
+    flow.appendChild(el);
+    if(i<wf.nodes.length-1){
+      const c=document.createElement('div');c.className='connector';
+      c.innerHTML=`<div class="conn-line"></div><div class="conn-arrow"></div>${node.connectorLabel?`<div class="conn-label">${node.connectorLabel}</div>`:''}`;
+      flow.appendChild(c);
+    }
+  });
+  canvas.appendChild(flow);
+};
+
+function enableBtns(on){['saveBtn','exportBtn','runBtn'].forEach(id=>document.getElementById(id).disabled=!on);}
+
+window.clearCanvas=()=>{
+  document.getElementById('workflowFlow')?.remove();currentWorkflow=null;
+  document.getElementById('workflowCanvas').innerHTML=`<div class="workflow-empty" id="emptyState"><div class="big-icon">◈</div><p>Your workflow will appear here.<br>Chat with AI to generate one.</p></div>`;
+  document.getElementById('nodeCount').textContent='0';document.getElementById('statusVal').textContent='idle';
+  enableBtns(false);document.getElementById('suggestions').style.display='flex';
+};
+
+window.newWorkflow=()=>{clearCanvas();document.getElementById('chatInput').focus();};
+
+window.exportJSON=()=>{
+  if(!currentWorkflow)return;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(currentWorkflow,null,2)],{type:'application/json'}));a.download='workflow.json';a.click();
+};
+
+window.runWorkflow=()=>{
+  if(!currentWorkflow)return;
+  document.getElementById('statusVal').textContent='running';document.getElementById('runBtn').disabled=true;
+  const nodes=document.querySelectorAll('.node');
+  nodes.forEach((n,i)=>{
+    setTimeout(()=>{
+      n.style.boxShadow='0 0 20px rgba(0,229,160,0.5)';n.style.borderColor='rgba(0,229,160,0.7)';
+      setTimeout(()=>{
+        n.style.boxShadow='';n.style.borderColor='';
+        if(i===nodes.length-1){document.getElementById('statusVal').textContent='done';document.getElementById('runBtn').disabled=false;addMsg('ai',`✅ Simulation complete — all ${nodes.length} steps executed!`);}
+      },700);
+    },i*500);
+  });
+};
+
+window.showToast=(msg)=>{
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+};
+</script>
+</body>
+</html>
